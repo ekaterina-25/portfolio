@@ -229,8 +229,8 @@ because their specification is identical:
 
 | Number | name | specification | Standard |
 |---|---|---|---|
-| 0503201 | `HEX BOLT M20X60 8.8` | `M20X60 - 8.8` | `EN ISO 4014, DIN 931` (partial thread) |
-| 0612847 | `HEX BOLT M20X60 8.8` | `M20X60 - 8.8` | `EN ISO 4017, DIN 933` (full thread) |
+| ITM-1001 | `HEX BOLT M20X60 8.8` | `M20X60 - 8.8` | `EN ISO 4014, DIN 931` (partial thread) |
+| ITM-1002 | `HEX BOLT M20X60 8.8` | `M20X60 - 8.8` | `EN ISO 4017, DIN 933` (full thread) |
 
 Setting `DISCRIMINATOR_COL = "Standard"` keeps them separate — they are physically
 different products even though the dimensions and grade are identical.

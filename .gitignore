@@ -1,0 +1,23 @@
+# Claude Code internal files
+.claude/
+
+# Client data and internal source materials — never publish
+duplicate_detection/source_data_duplicates/
+
+# Old/intermediate script versions
+duplicate_detection/find_duplicates_single_file.py
+
+# Run output files (generated from client data)
+duplicate_detection/data/duplicates_system1.xlsx
+duplicate_detection/data/duplicates_screws.xlsx
+duplicate_detection/data/~$*.xlsx
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Temporary Excel lock files
+~$*.xlsx
+~$*.docx
+~$*.pptx

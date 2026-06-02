@@ -3,6 +3,8 @@
 A Python pipeline for finding duplicate items in industrial spare parts catalogs
 using TF-IDF text similarity and within-group verification.
 
+**Try it online:** [Open the Streamlit app](https://ekaterina-25-portfolio-duplicate-detectionapp-gubecm.streamlit.app) — upload your own Excel file, configure settings, and download results. No installation needed.
+
 ---
 
 ## Business Problem
@@ -108,7 +110,7 @@ Results are written as a new sheet (`Duplicates`) in the source Excel file.
 |---|---|
 | `duplicate_group` | Group number — all items with the same number are potential duplicates |
 | `similarity_pct` | Minimum pairwise similarity within the group (0–100 %). Higher = more confident match. |
-| `combined_text` | Normalised text used for comparison — shows what the algorithm "saw" |
+| `comparison_data` | Normalised text used for comparison — shows what the algorithm "saw" |
 | *(context columns)* | Original fields configured in `CONTEXT_COLS` for human review |
 
 **How to interpret similarity_pct:**
@@ -176,14 +178,29 @@ on your data:
 
 ## How to Run
 
+### Option 1 — Streamlit web app (recommended)
+
+No installation needed. Open the app, upload an Excel file, and download the results:
+
+**[https://ekaterina-25-portfolio-duplicate-detectionapp-gubecm.streamlit.app](https://ekaterina-25-portfolio-duplicate-detectionapp-gubecm.streamlit.app)**
+
+The app lets you:
+- Select which columns to compare and which to use as a discriminator
+- Adjust similarity thresholds with sliders
+- Browse duplicate groups colour-coded by confidence level
+- Download a two-sheet Excel file: original data on sheet *Data*, results on sheet *Duplicates*
+
+Sample files in the `data/` folder can be used to try the app:
+- `spare_parts_system1.xlsx` — general spare parts (use `specification` as comparison column)
+- `spare_parts_screws.xlsx` — screws with standard codes (use `specification` + `Standard` as discriminator to see how DIN 931 and DIN 933 are kept separate)
+
+---
+
+### Option 2 — Command line
+
 **Install dependencies:**
 ```bash
-pip install pandas scikit-learn openpyxl fuzzywuzzy python-Levenshtein sentence-transformers
-```
-
-**Generate demo data:**
-```bash
-python generate_synthetic_data.py
+pip install pandas scikit-learn openpyxl streamlit plotly
 ```
 
 **Find duplicates:**
@@ -191,13 +208,8 @@ python generate_synthetic_data.py
 python find_duplicates.py
 ```
 
+Edit the configuration block at the top of `find_duplicates.py` to point to your file.
 The `Duplicates` sheet is added to the source Excel file.
-
-**Compare methods (optional):**
-```bash
-python compare_methods.py
-```
-Writes three sheets (A_Numeric, B_Fuzzy, C_Semantic) for method comparison.
 
 ---
 

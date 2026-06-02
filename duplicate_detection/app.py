@@ -229,6 +229,8 @@ if run_button:
 
     st.session_state.update(
         results=result_df,
+        original_df=df,
+        source_filename=uploaded_file.name,
         n_rows=n_rows,
         id_col=id_col,
         context_cols=context_cols,
@@ -240,6 +242,8 @@ if "results" not in st.session_state:
     st.stop()
 
 result_df       = st.session_state["results"]
+original_df     = st.session_state["original_df"]
+source_filename = st.session_state["source_filename"]
 n_rows          = st.session_state["n_rows"]
 id_col_d        = st.session_state["id_col"]
 context_cols_d  = st.session_state["context_cols"]
@@ -358,14 +362,18 @@ with tab_download:
 
     output_df = result_df[[c for c in out_cols if c in result_df.columns]]
 
+    base_name = os.path.splitext(source_filename)[0]
+    download_name = f"{base_name}_duplicates.xlsx"
+
     buf = io.BytesIO()
     with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+        original_df.to_excel(writer, sheet_name="Data", index=False)
         output_df.to_excel(writer, sheet_name="Duplicates", index=False)
 
     st.download_button(
         label="⬇ Download results as Excel",
         data=buf.getvalue(),
-        file_name="duplicates.xlsx",
+        file_name=download_name,
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         use_container_width=True,
     )

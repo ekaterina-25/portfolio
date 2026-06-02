@@ -212,20 +212,8 @@ if run_button:
         st.warning("No duplicate groups found. Try lowering the thresholds.")
         st.stop()
 
-    # Add comparison_data: single column value, or comparison columns joined when multiple
-    if len(compare_cols) == 1:
-        result_df["comparison_data"] = result_df[compare_cols[0]].fillna("").astype(str)
-    else:
-        result_df["comparison_data"] = result_df.apply(
-            lambda row: "  |  ".join(
-                str(row[c])
-                for c in compare_cols
-                if c in result_df.columns
-                and pd.notna(row[c])
-                and str(row[c]).strip() not in ("", "nan", "NaN")
-            ),
-            axis=1,
-        )
+    # Add comparison_data: the normalised text that was actually used for comparison
+    result_df["comparison_data"] = result_df[id_col].map(compare_series)
 
     st.session_state.update(
         results=result_df,

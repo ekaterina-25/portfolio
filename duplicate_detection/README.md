@@ -259,8 +259,8 @@ Sample group — same screw, entered twice with slightly different text:
 
 | Number | similarity_pct | name | specification | Standard |
 |---|---|---|---|---|
-| 2001144 | 100 % | `7/16 UNC COATED SCREW` | `7/16 UNC x 1 COATED` | ANSI B18.3-8.8 ZNE |
-| 2001140 | 100 % | `7/16 UNC COATED BOLT` | `7/16 UNC x 1 COATED` | ANSI B18.3-8.8 ZNE |
+| ITM-1003 | 100 % | `7/16 UNC COATED SCREW` | `7/16 UNC x 1 COATED` | ANSI B18.3-8.8 ZNE |
+| ITM-1004 | 100 % | `7/16 UNC COATED BOLT` | `7/16 UNC x 1 COATED` | ANSI B18.3-8.8 ZNE |
 
 The specifications are identical but the names differ slightly — an exact-match
 deduplication would not catch this pair.

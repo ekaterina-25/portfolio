@@ -99,10 +99,11 @@ def combined_text(row) -> str:
 
 # ── Step 2: Candidate search ──────────────────────────────────────────────────
 
-def find_candidates(spec_series: pd.Series) -> set[tuple]:
+def find_candidates(spec_series: pd.Series,
+                    threshold: float = CANDIDATE_THRESHOLD) -> set[tuple]:
     """
-    Build a TF-IDF matrix on specification text and return pairs whose cosine
-    similarity exceeds CANDIDATE_THRESHOLD.
+    Build a TF-IDF matrix on the comparison text and return pairs whose cosine
+    similarity exceeds threshold.
 
     Character n-gram TF-IDF (3–5 chars) is used because it handles partial
     matches well: '6205-2RS1' and '6205 2RS' share the character sequence
@@ -126,13 +127,14 @@ def find_candidates(spec_series: pd.Series) -> set[tuple]:
         (ids[i], ids[j])
         for i in range(len(ids))
         for j in range(i + 1, len(ids))
-        if sim[i][j] >= CANDIDATE_THRESHOLD
+        if sim[i][j] >= threshold
     }
 
 
 # ── Step 3: Within-group verification ────────────────────────────────────────
 
-def verify_groups(candidate_pairs: set, spec_series: pd.Series) -> dict[tuple, float]:
+def verify_groups(candidate_pairs: set, spec_series: pd.Series,
+                  threshold: float = VERIFY_THRESHOLD) -> dict[tuple, float]:
     """
     Group candidate pairs, then re-compute TF-IDF similarity *within each group*.
 
@@ -191,7 +193,7 @@ def verify_groups(candidate_pairs: set, spec_series: pd.Series) -> dict[tuple, f
             for j, b in enumerate(members):
                 if i < j:
                     score = float(sim[i, j])
-                    if score >= VERIFY_THRESHOLD:
+                    if score >= threshold:
                         verified[(min(a, b), max(a, b))] = round(score, 3)
 
     return verified
@@ -199,19 +201,21 @@ def verify_groups(candidate_pairs: set, spec_series: pd.Series) -> dict[tuple, f
 
 # ── Step 4: Build result table ────────────────────────────────────────────────
 
-def apply_discriminator(verified: dict[tuple, float], df: pd.DataFrame) -> dict[tuple, float]:
+def apply_discriminator(verified: dict[tuple, float], df: pd.DataFrame,
+                        id_col: str = ID_COL,
+                        disc_col: str | None = DISCRIMINATOR_COL) -> dict[tuple, float]:
     """
     Remove pairs where the discriminator column has different non-empty values.
 
-    Example: for screw data with DISCRIMINATOR_COL = "Standard":
+    Example: for screw data with disc_col = "Standard":
       - M20X60 8.8 (DIN 931)  vs  M20X60 8.8 (DIN 933)  → removed  (different standard)
       - M20X60 8.8 (DIN 933)  vs  M20X60 - 8.8 (DIN 933) → kept    (same standard)
       - M20X60 8.8 (DIN 933)  vs  M20X60 8.8 (empty)     → kept    (cannot determine)
     """
-    if not DISCRIMINATOR_COL or DISCRIMINATOR_COL not in df.columns:
+    if not disc_col or disc_col not in df.columns:
         return verified
 
-    disc = df.set_index(ID_COL)[DISCRIMINATOR_COL].fillna("").astype(str).to_dict()
+    disc = df.set_index(id_col)[disc_col].fillna("").astype(str).to_dict()
 
     filtered = {}
     for (a, b), score in verified.items():
@@ -223,7 +227,8 @@ def apply_discriminator(verified: dict[tuple, float], df: pd.DataFrame) -> dict[
     return filtered
 
 
-def build_results(verified: dict[tuple, float], df: pd.DataFrame) -> pd.DataFrame:
+def build_results(verified: dict[tuple, float], df: pd.DataFrame,
+                  id_col: str = ID_COL) -> pd.DataFrame:
     """
     Convert verified pairs into a grouped result DataFrame.
 
@@ -238,7 +243,7 @@ def build_results(verified: dict[tuple, float], df: pd.DataFrame) -> pd.DataFram
         return pd.DataFrame()
 
     # Group via union-find
-    all_ids = df[ID_COL].tolist()
+    all_ids = df[id_col].tolist()
     parent  = {i: i for i in all_ids}
 
     def find(x):
@@ -282,22 +287,30 @@ def build_results(verified: dict[tuple, float], df: pd.DataFrame) -> pd.DataFram
     if not dup_items:
         return pd.DataFrame()
 
-    result = df[df[ID_COL].isin(dup_items)].copy()
-    result.insert(1, "duplicate_group", result[ID_COL].map(dup_items))
+    result = df[df[id_col].isin(dup_items)].copy()
+    result = result.drop(columns=["duplicate_group", "similarity_pct"], errors="ignore")
+    result.insert(1, "duplicate_group", result[id_col].map(dup_items))
 
-    # Re-number groups 1, 2, 3 ...
-    gmap = {old: new for new, old in enumerate(sorted(result["duplicate_group"].unique()), 1)}
-    result["duplicate_group"] = result["duplicate_group"].map(gmap)
-
-    # Add similarity percentage (same value for all members of a group)
+    # Add similarity percentage before sorting
     result.insert(2, "similarity_pct",
-                  result[ID_COL].map(dup_items).map(
+                  result[id_col].map(dup_items).map(
                       lambda r: group_min_sim.get(r, 0)
                   ))
 
     result = (result
               .sort_values(["similarity_pct", "duplicate_group"], ascending=[False, True])
               .reset_index(drop=True))
+
+    # Number groups 1, 2, 3 ... in display order (group 1 = highest similarity)
+    seen: dict = {}
+    counter = 0
+    new_nums: list = []
+    for gid in result["duplicate_group"]:
+        if gid not in seen:
+            counter += 1
+            seen[gid] = counter
+        new_nums.append(seen[gid])
+    result["duplicate_group"] = new_nums
 
     return result
 

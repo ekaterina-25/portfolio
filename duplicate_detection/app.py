@@ -1,6 +1,10 @@
 """
 Streamlit web application for duplicate detection in product catalogs.
 
+Two modes:
+  Within-file  — find duplicate items inside one Excel file
+  Cross-file   — find matching items between two Excel files from different systems
+
 Run with:  streamlit run app.py
 """
 import io
@@ -13,6 +17,7 @@ import streamlit as st
 
 sys.path.insert(0, os.path.dirname(__file__))
 import find_duplicates as fd
+import find_duplicates_cross_file as cf
 
 # ── Page setup ────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -22,127 +27,236 @@ st.set_page_config(
 )
 
 st.title("🔍 Duplicate Detection in Product Catalog Data")
-st.caption(
-    "Find near-duplicate items using TF-IDF similarity and within-group verification. "
-    "Recommended for catalogs up to ~5 000 rows per run. "
-    "For larger catalogs, filter by product group first."
-)
 
-# ── Sidebar — settings ────────────────────────────────────────────────────────
-with st.sidebar:
-    st.header("⚙ Settings")
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
-    uploaded_file = st.file_uploader("Upload Excel file (.xlsx)", type=["xlsx", "xls"])
-
-    if uploaded_file is None:
-        st.info("Upload an Excel file to get started.")
-        st.stop()
-
-    # Read sheet names
+def read_sheet_names(file):
     try:
-        xf = pd.ExcelFile(uploaded_file)
-        sheet_names = xf.sheet_names
+        return pd.ExcelFile(file).sheet_names
     except Exception as e:
         st.error(f"Could not open file: {e}")
         st.stop()
 
-    sheet = st.selectbox("Sheet", sheet_names)
-    header_row = st.number_input("Header row (0 = first row is header)", 0, 20, 0)
-
-    # Read column names from the selected sheet
-    uploaded_file.seek(0)
+def read_col_names(file, sheet, header_row):
+    file.seek(0)
     try:
-        df_preview = pd.read_excel(
-            uploaded_file, sheet_name=sheet, header=int(header_row), nrows=0
-        )
-        all_cols = list(df_preview.columns)
+        return list(pd.read_excel(
+            file, sheet_name=sheet, header=int(header_row), nrows=0
+        ).columns)
     except Exception as e:
         st.error(f"Could not read columns: {e}")
         st.stop()
 
+def default_cols(all_cols, preferred):
+    """Return the subset of preferred that exist in all_cols, in order."""
+    return [c for c in preferred if c in all_cols]
+
+PREFERRED_SPEC    = ["specification", "Specification"]
+PREFERRED_COMPARE = ["specification", "Specification", "name", "Name"]
+PREFERRED_CONTEXT = ["name", "Name", "description_en", "Description (English)",
+                     "description_fi", "Description (Finnish)",
+                     "specification", "Specification", "category", "manufacturer", "Standard"]
+
+def similarity_chart(sim_series, y_label):
+    """Bar chart of pairs/groups by similarity band — green first.
+    Only shows bands that actually contain data."""
+    bins = pd.cut(sim_series, bins=[0, 59, 69, 89, 100],
+                  labels=["50–59 %", "60–69 %", "70–89 %", "90–100 %"])
+    label_order = ["90–100 %", "70–89 %", "60–69 %", "50–59 %"]
+    chart_data = bins.value_counts().rename_axis("range").reset_index(name=y_label)
+
+    # Drop empty bands so the chart only shows what's in the data
+    chart_data = chart_data[chart_data[y_label] > 0]
+
+    chart_data["range"] = pd.Categorical(
+        chart_data["range"], categories=label_order, ordered=True
+    )
+    chart_data = chart_data.sort_values("range")
+    color_map = {"50–59 %": "#dc3545", "60–69 %": "#fd7e14", "70–89 %": "#ffc107", "90–100 %": "#28a745"}
+    fig = px.bar(chart_data, x="range", y=y_label, color="range",
+                 color_discrete_map=color_map,
+                 labels={"range": "Similarity"},
+                 title=f"{y_label.capitalize()} by similarity level",
+                 text=y_label)
+    fig.update_traces(textposition="outside")
+    # Add 25 % headroom above the tallest bar so the label is never clipped
+    max_val = int(chart_data[y_label].max()) if not chart_data.empty else 1
+    fig.update_layout(showlegend=False, height=350,
+                      yaxis=dict(range=[0, max_val * 1.25]))
+    return fig
+
+def highlight_row(row):
+    pct = row.get("similarity_pct", 0)
+    colour = "#d4edda" if pct >= 90 else "#fff3cd" if pct >= 70 else "#fde8d8"
+    return [f"background-color: {colour}"] * len(row)
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# SIDEBAR
+# ════════════════════════════════════════════════════════════════════════════
+with st.sidebar:
+    st.header("⚙ Settings")
+    st.caption(
+        "**Within-file** — finds duplicate items inside a single catalog file. "
+        "Use when the same product might present more than once in a system.  \n"
+        "**Cross-file** — finds matching items between two different files. "
+        "Use when merging catalogs using data from different sources "
+        "e.g. in system migration projects."
+    )
+
+    mode = st.radio("Mode", ["Within-file", "Cross-file"], horizontal=True)
     st.divider()
-    st.subheader("Columns")
 
-    id_col = st.selectbox(
-        "ID column",
-        all_cols,
-        index=all_cols.index("item_id") if "item_id" in all_cols else 0,
-        help="Column that uniquely identifies each row.",
-    )
+    # ── WITHIN-FILE sidebar ───────────────────────────────────────────────────
+    if mode == "Within-file":
+        uploaded_file = st.file_uploader("Upload Excel file (.xlsx)",
+                                         type=["xlsx", "xls"], key="wf_file")
+        if uploaded_file is None:
+            st.info("Upload an Excel file to get started.")
+            st.stop()
 
-    # Default comparison column: prefer 'specification' or 'Specification'
-    default_spec = next(
-        (c for c in all_cols if c.lower() == "specification"), all_cols[0]
-    )
-    compare_cols = st.multiselect(
-        "Comparison columns",
-        all_cols,
-        default=[default_spec],
-        help=(
-            "Columns combined and compared to find duplicates. "
-            "Specification alone works well when it is well-filled. "
-            "Add Name or Description if Specification is often empty."
-        ),
-    )
+        sheet_names = read_sheet_names(uploaded_file)
+        sheet = st.selectbox("Sheet", sheet_names, key="wf_sheet")
+        header_row = st.number_input("Header row (0 = first row is header)",
+                                     0, 20, 0, key="wf_header")
+        all_cols = read_col_names(uploaded_file, sheet, header_row)
 
-    disc_options = ["(none)"] + all_cols
-    disc_selection = st.selectbox(
-        "Discriminator column (optional)",
-        disc_options,
-        help=(
-            "Items with different values in this column are never grouped as duplicates, "
-            "even if their specification is identical. "
-            "Example: 'Standard' for screws prevents mixing DIN 931 and DIN 933. "
-            "Try this with the sample file spare_parts_screws.xlsx using the Standard column."
-        ),
-    )
-    discriminator_col = None if disc_selection == "(none)" else disc_selection
+        st.divider()
+        st.subheader("Columns")
 
-    # Default context columns
-    preferred_context = ["name", "Name", "description_en", "Description (English)",
-                         "description_fi", "Description (Finnish)", "specification",
-                         "Specification", "category", "manufacturer", "Standard"]
-    default_context = [c for c in preferred_context if c in all_cols][:6]
-    context_cols = st.multiselect(
-        "Context columns (shown in results)",
-        all_cols,
-        default=default_context,
-        help="Original columns shown alongside duplicate groups to help with review.",
-    )
+        id_col = st.selectbox(
+            "ID column", all_cols, key="wf_id",
+            index=all_cols.index("item_id") if "item_id" in all_cols else 0,
+            help="Column that uniquely identifies each row.",
+        )
+        compare_cols = st.multiselect(
+            "Comparison columns", all_cols, key="wf_compare",
+            default=default_cols(all_cols, PREFERRED_COMPARE)[:1] or all_cols[:1],
+            help="Columns combined and compared to find duplicates. "
+                 "Specification alone works well when it is well-filled. "
+                 "Add Name or Description if Specification is often empty.",
+        )
+        disc_selection = st.selectbox(
+            "Discriminator column (optional)", ["(none)"] + all_cols, key="wf_disc",
+            help="Items with different values in this column are never grouped as duplicates. "
+                 "Example: 'Standard' for screws prevents mixing DIN 931 and DIN 933. "
+                 "Try this with spare_parts_screws.xlsx using the Standard column.",
+        )
+        discriminator_col = None if disc_selection == "(none)" else disc_selection
 
-    st.divider()
-    st.subheader("Thresholds")
-    st.caption("Higher values = stricter matching, fewer but more accurate groups.")
+        context_cols = st.multiselect(
+            "Context columns (shown in results)", all_cols, key="wf_context",
+            default=default_cols(all_cols, PREFERRED_CONTEXT)[:6],
+            help="Original columns shown alongside duplicate groups to help with review.",
+        )
 
-    candidate_threshold = st.slider(
-        "Candidate search threshold",
-        0.50, 1.00, 0.70, 0.05,
-        help="Stage 2: TF-IDF similarity to collect candidate pairs.",
-    )
-    verify_threshold = st.slider(
-        "Within-group verification threshold",
-        0.30, 1.00, 0.60, 0.05,
-        help="Stage 3: similarity re-computed within each candidate group.",
-    )
+        st.divider()
+        st.subheader("Thresholds")
+        st.caption("Higher values = stricter matching, fewer but more accurate groups.")
+        candidate_threshold = st.slider("Candidate search threshold",
+                                        0.50, 1.00, 0.70, 0.05, key="wf_cand",
+                                        help="Stage 2: TF-IDF similarity to collect candidate pairs.")
+        verify_threshold = st.slider("Within-group verification threshold",
+                                     0.30, 1.00, 0.60, 0.05, key="wf_verify",
+                                     help="Stage 3: similarity re-computed within each candidate group.")
+        if not compare_cols:
+            st.warning("Select at least one comparison column.")
+            st.stop()
 
-    if not compare_cols:
-        st.warning("Select at least one comparison column.")
-        st.stop()
+        st.divider()
+        run_button = st.button("▶ Find duplicates", type="primary",
+                               use_container_width=True, key="wf_run")
 
-    st.divider()
-    run_button = st.button("▶ Find duplicates", type="primary", use_container_width=True)
+    # ── CROSS-FILE sidebar ────────────────────────────────────────────────────
+    else:
+        # File 1
+        st.subheader("File 1")
+        file1 = st.file_uploader("Upload file 1 (.xlsx)", type=["xlsx", "xls"],
+                                  key="cf_file1")
+        if file1 is None:
+            st.info("Upload both files to continue.")
+            st.stop()
+        sheets1 = read_sheet_names(file1)
+        sheet1 = st.selectbox("Sheet", sheets1, key="cf_sheet1")
+        header1 = st.number_input("Header row", 0, 20, 0, key="cf_header1")
+        cols1 = read_col_names(file1, sheet1, header1)
+        id_col1 = st.selectbox(
+            "ID column", cols1, key="cf_id1",
+            index=cols1.index("item_id") if "item_id" in cols1 else 0,
+        )
 
-# ── Welcome screen ────────────────────────────────────────────────────────────
-if not run_button and "results" not in st.session_state:
-    st.info("👈 Configure settings in the sidebar and click **Find duplicates**.")
+        st.divider()
+        st.subheader("File 2")
+        file2 = st.file_uploader("Upload file 2 (.xlsx)", type=["xlsx", "xls"],
+                                  key="cf_file2")
+        if file2 is None:
+            st.info("Upload file 2 to continue.")
+            st.stop()
+        sheets2 = read_sheet_names(file2)
+        sheet2 = st.selectbox("Sheet", sheets2, key="cf_sheet2")
+        header2 = st.number_input("Header row", 0, 20, 0, key="cf_header2")
+        cols2 = read_col_names(file2, sheet2, header2)
+        id_col2 = st.selectbox(
+            "ID column", cols2, key="cf_id2",
+            index=cols2.index("item_id") if "item_id" in cols2 else 0,
+        )
 
-    with st.expander("How it works"):
-        st.markdown(
-            """
+        st.divider()
+        st.subheader("Comparison columns")
+        st.caption("Columns combined into one text per item and compared between files. "
+                   "Both columns are normalised before comparison.")
+        compare1 = st.multiselect(
+            "File 1 comparison columns", cols1, key="cf_compare1",
+            default=default_cols(cols1, PREFERRED_COMPARE)[:2] or cols1[:1],
+        )
+        compare2 = st.multiselect(
+            "File 2 comparison columns", cols2, key="cf_compare2",
+            default=default_cols(cols2, PREFERRED_COMPARE)[:2] or cols2[:1],
+        )
+
+        st.subheader("Reference columns (shown in results)")
+        st.caption("Original columns added to the results table for human review. "
+                   "Columns are shown interleaved: File 1 column next to File 2 column.")
+        context1 = st.multiselect(
+            "File 1 reference columns", cols1, key="cf_context1",
+            default=default_cols(cols1, PREFERRED_CONTEXT)[:4],
+        )
+        context2 = st.multiselect(
+            "File 2 reference columns", cols2, key="cf_context2",
+            default=default_cols(cols2, PREFERRED_CONTEXT)[:4],
+        )
+
+        st.divider()
+        st.subheader("Threshold")
+        cf_threshold = st.slider(
+            "Similarity threshold", 0.50, 1.00, 0.70, 0.05, key="cf_thresh",
+            help="Pairs below this value are not shown. "
+                 "0.70 works well — testing showed it removes noisy pairs "
+                 "without losing genuine matches.",
+        )
+
+        if not compare1 or not compare2:
+            st.warning("Select at least one comparison column for each file.")
+            st.stop()
+
+        st.divider()
+        run_cf = st.button("▶ Find cross-file matches", type="primary",
+                           use_container_width=True, key="cf_run")
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# WITHIN-FILE — run analysis
+# ════════════════════════════════════════════════════════════════════════════
+if mode == "Within-file":
+
+    if not run_button and "wf_results" not in st.session_state:
+        st.caption("Find near-duplicate items using TF-IDF similarity and within-group verification. "
+                   "Recommended for catalogs up to ~5 000 rows per run.")
+        with st.expander("How it works"):
+            st.markdown("""
 **Stage 1 — Normalise**
 Text is converted to uppercase, abbreviations are expanded
-(`BRG` → `BEARING`, `HYD` → `HYDRAULIC`), and measurement formats are unified
-(`M8 X 30` → `M8X30`).
+(`BRG` → `BEARING`, `HYD` → `HYDRAULIC`), and measurement formats are unified (`M8 X 30` → `M8X30`).
 
 **Stage 2 — Candidate search (TF-IDF)**
 Rare terms like product codes get higher weight than common words like `GRADE` or `ISO`.
@@ -156,216 +270,256 @@ items score low and are removed. Genuine duplicates share the same codes and sco
 **Stage 4 — Discriminator filter (optional)**
 Items with different values in the discriminator column are never grouped as duplicates.
 For screws: `Standard = DIN 931` (partial thread) ≠ `Standard = DIN 933` (full thread).
-"""
-        )
-    st.stop()
-
-# ── Run analysis ──────────────────────────────────────────────────────────────
-if run_button:
-    uploaded_file.seek(0)
-
-    with st.spinner("Loading data…"):
-        df = pd.read_excel(uploaded_file, sheet_name=sheet, header=int(header_row))
-
-    n_rows = len(df)
-
-    if n_rows > 10_000:
-        st.warning(
-            f"⚠ File has {n_rows:,} rows. "
-            "For best performance, filter to one product group before running. "
-            "Processing may take several minutes."
-        )
-
-    # Build comparison series: combine selected columns into one normalised text per row
-    with st.spinner("Normalising text…"):
-        compare_series = df.set_index(id_col).apply(
-            lambda row: " ".join(
-                fd.normalize(row[c])
-                for c in compare_cols
-                if c in row.index and pd.notna(row[c]) and str(row[c]).strip()
-            ),
-            axis=1,
-        )
-
-    progress = st.progress(0, "Stage 2 — TF-IDF candidate search…")
-
-    candidates = fd.find_candidates(compare_series, threshold=candidate_threshold)
-    progress.progress(35, f"Found {len(candidates):,} candidate pairs — verifying…")
-
-    verified = fd.verify_groups(candidates, compare_series, threshold=verify_threshold)
-    progress.progress(65, f"Kept {len(verified):,} verified pairs…")
-
-    if discriminator_col:
-        before = len(verified)
-        verified = fd.apply_discriminator(
-            verified, df, id_col=id_col, disc_col=discriminator_col
-        )
-        removed = before - len(verified)
-        progress.progress(85, f"Discriminator removed {removed:,} pairs…")
-
-    progress.progress(90, "Building results…")
-    result_df = fd.build_results(verified, df, id_col=id_col)
-    progress.progress(100, "Done!")
-    progress.empty()
-
-    if result_df.empty:
-        st.warning("No duplicate groups found. Try lowering the thresholds.")
+""")
         st.stop()
 
-    # Add comparison_data: the normalised text that was actually used for comparison
-    result_df["comparison_data"] = result_df[id_col].map(compare_series)
+    if run_button:
+        uploaded_file.seek(0)
+        with st.spinner("Loading data…"):
+            df = pd.read_excel(uploaded_file, sheet_name=sheet, header=int(header_row))
+        n_rows = len(df)
 
-    st.session_state.update(
-        results=result_df,
-        original_df=df,
-        source_filename=uploaded_file.name,
-        n_rows=n_rows,
-        id_col=id_col,
-        context_cols=context_cols,
-        discriminator_col=discriminator_col,
-    )
+        if n_rows > 10_000:
+            st.warning(f"⚠ File has {n_rows:,} rows. "
+                       "For best performance, filter to one product group before running.")
 
-# ── Display results ───────────────────────────────────────────────────────────
-if "results" not in st.session_state:
-    st.stop()
+        with st.spinner("Normalising text…"):
+            compare_series = df.set_index(id_col).apply(
+                lambda row: " ".join(
+                    fd.normalize(row[c])
+                    for c in compare_cols
+                    if c in row.index and pd.notna(row[c]) and str(row[c]).strip()
+                ),
+                axis=1,
+            )
 
-result_df       = st.session_state["results"]
-original_df     = st.session_state["original_df"]
-source_filename = st.session_state["source_filename"]
-n_rows          = st.session_state["n_rows"]
-id_col_d        = st.session_state["id_col"]
-context_cols_d  = st.session_state["context_cols"]
-discriminator_d = st.session_state["discriminator_col"]
+        progress = st.progress(0, "Stage 2 — TF-IDF candidate search…")
+        candidates = fd.find_candidates(compare_series, threshold=candidate_threshold)
+        progress.progress(35, f"Found {len(candidates):,} candidate pairs — verifying…")
 
-n_groups  = result_df["duplicate_group"].nunique()
-n_flagged = len(result_df)
+        verified = fd.verify_groups(candidates, compare_series, threshold=verify_threshold)
+        progress.progress(65, f"Kept {len(verified):,} verified pairs…")
 
-tab_summary, tab_groups, tab_download = st.tabs(
-    ["📊 Summary", "🔁 Duplicate Groups", "⬇ Download"]
-)
+        if discriminator_col:
+            before = len(verified)
+            verified = fd.apply_discriminator(verified, df,
+                                              id_col=id_col, disc_col=discriminator_col)
+            removed = before - len(verified)
+            progress.progress(85, f"Discriminator removed {removed:,} pairs…")
 
-# ── Tab 1: Summary ────────────────────────────────────────────────────────────
-with tab_summary:
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Total rows", f"{n_rows:,}")
-    c2.metric("Duplicate groups", n_groups)
-    c3.metric("Rows flagged", n_flagged)
-    c4.metric("% of catalog", f"{n_flagged / n_rows:.0%}")
+        progress.progress(90, "Building results…")
+        result_df = fd.build_results(verified, df, id_col=id_col)
+        progress.progress(100, "Done!")
+        progress.empty()
 
-    if discriminator_d:
-        st.info(
-            f"ℹ Discriminator column **'{discriminator_d}'** was applied — "
-            "pairs with different values were excluded."
+        if result_df.empty:
+            st.warning("No duplicate groups found. Try lowering the thresholds.")
+            st.stop()
+
+        result_df["comparison_data"] = result_df[id_col].map(compare_series)
+
+        st.session_state.update(
+            wf_results=result_df,
+            wf_original_df=df,
+            wf_filename=uploaded_file.name,
+            wf_n_rows=n_rows,
+            wf_id_col=id_col,
+            wf_context_cols=context_cols,
+            wf_discriminator=discriminator_col,
         )
 
-    st.divider()
+    if "wf_results" not in st.session_state:
+        st.stop()
 
-    # Similarity distribution bar chart
-    groups_df = result_df.drop_duplicates("duplicate_group")[
-        ["duplicate_group", "similarity_pct"]
-    ].copy()
+    # Load from session state
+    result_df   = st.session_state["wf_results"]
+    original_df = st.session_state["wf_original_df"]
+    wf_filename = st.session_state["wf_filename"]
+    n_rows      = st.session_state["wf_n_rows"]
+    id_col_d    = st.session_state["wf_id_col"]
+    ctx_cols    = st.session_state["wf_context_cols"]
+    disc_col    = st.session_state["wf_discriminator"]
 
-    bins = pd.cut(
-        groups_df["similarity_pct"],
-        bins=[0, 69, 89, 100],
-        labels=["60–69 %", "70–89 %", "90–100 %"],
-    )
-    label_order = ["90–100 %", "70–89 %", "60–69 %"]
-    chart_data = (
-        bins.value_counts()
-        .rename_axis("range")
-        .reset_index(name="groups")
-    )
-    chart_data["range"] = pd.Categorical(
-        chart_data["range"], categories=label_order, ordered=True
-    )
-    chart_data = chart_data.sort_values("range")
+    n_groups  = result_df["duplicate_group"].nunique()
+    n_flagged = len(result_df)
 
-    color_map = {
-        "60–69 %":  "#fd7e14",
-        "70–89 %":  "#ffc107",
-        "90–100 %": "#28a745",
-    }
-    fig = px.bar(
-        chart_data,
-        x="range", y="groups",
-        color="range",
-        color_discrete_map=color_map,
-        labels={"range": "Similarity", "groups": "Number of groups"},
-        title="Duplicate groups by similarity level",
-        text="groups",
-    )
-    fig.update_traces(textposition="outside")
-    fig.update_layout(showlegend=False, height=350)
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.caption(
-        "🟢 90–100 % — high confidence  "
-        "🟡 70–89 % — review specification  "
-        "🟠 60–69 % — uncertain, review carefully"
+    tab_summary, tab_groups, tab_download = st.tabs(
+        ["📊 Summary", "🔁 Duplicate Groups", "⬇ Download"]
     )
 
-# ── Tab 2: Duplicate Groups ───────────────────────────────────────────────────
-with tab_groups:
-    min_sim = st.slider(
-        "Show groups with similarity ≥", 60, 100, 60, 5, key="filter_slider"
-    )
-    filtered = result_df[result_df["similarity_pct"] >= min_sim]
+    with tab_summary:
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Total rows", f"{n_rows:,}")
+        c2.metric("Duplicate groups", n_groups)
+        c3.metric("Rows flagged", n_flagged)
+        c4.metric("% of catalog", f"{n_flagged / n_rows:.0%}")
+        if disc_col:
+            st.info(f"ℹ Discriminator **'{disc_col}'** was applied — "
+                    "pairs with different values were excluded.")
+        st.divider()
+        groups_df = result_df.drop_duplicates("duplicate_group")[["similarity_pct"]].copy()
+        st.plotly_chart(similarity_chart(groups_df["similarity_pct"], "groups"),
+                        use_container_width=True)
+        st.caption("🟢 90–100 % — high confidence  "
+                   "🟡 70–89 % — review needed  "
+                   "🟠 60–69 % — uncertain  "
+                   "🔴 50–59 % — low confidence, review carefully")
 
-    st.caption(
-        f"Showing **{filtered['duplicate_group'].nunique()}** groups, "
-        f"**{len(filtered)}** rows"
-    )
+    with tab_groups:
+        min_sim = st.slider("Show groups with similarity ≥", 60, 100, 60, 5,
+                            key="wf_filter")
+        filtered = result_df[result_df["similarity_pct"] >= min_sim]
+        st.caption(f"Showing **{filtered['duplicate_group'].nunique()}** groups, "
+                   f"**{len(filtered)}** rows")
+        display_cols = [id_col_d, "duplicate_group", "similarity_pct", "comparison_data"]
+        for c in ctx_cols:
+            if c in filtered.columns and c not in display_cols:
+                display_cols.append(c)
+        if disc_col and disc_col in filtered.columns and disc_col not in display_cols:
+            display_cols.append(disc_col)
+        display_cols = [c for c in display_cols if c in filtered.columns]
+        styled = filtered[display_cols].style.apply(highlight_row, axis=1)
+        st.dataframe(styled, use_container_width=True, height=520)
 
-    # Columns to display
-    display_cols = [id_col_d, "duplicate_group", "similarity_pct", "comparison_data"]
-    for c in context_cols_d:
-        if c in filtered.columns and c not in display_cols:
-            display_cols.append(c)
-    if discriminator_d and discriminator_d in filtered.columns and discriminator_d not in display_cols:
-        display_cols.append(discriminator_d)
-    display_cols = [c for c in display_cols if c in filtered.columns]
-
-    # Colour rows by similarity
-    def highlight_row(row):
-        pct = row.get("similarity_pct", 0)
-        colour = (
-            "#d4edda" if pct >= 90
-            else "#fff3cd" if pct >= 70
-            else "#fde8d8"
+    with tab_download:
+        out_cols = [id_col_d, "duplicate_group", "similarity_pct", "comparison_data"]
+        for c in ctx_cols:
+            if c in result_df.columns and c not in out_cols:
+                out_cols.append(c)
+        if disc_col and disc_col in result_df.columns and disc_col not in out_cols:
+            out_cols.append(disc_col)
+        output_df = result_df[[c for c in out_cols if c in result_df.columns]]
+        base_name = os.path.splitext(wf_filename)[0]
+        buf = io.BytesIO()
+        with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+            original_df.to_excel(writer, sheet_name="Data", index=False)
+            output_df.to_excel(writer, sheet_name="Duplicates", index=False)
+        st.download_button(
+            label="⬇ Download results as Excel",
+            data=buf.getvalue(),
+            file_name=f"{base_name}_duplicates.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
         )
-        return [f"background-color: {colour}"] * len(row)
+        st.caption(f"The file contains **{n_groups}** duplicate groups "
+                   f"with **{n_flagged}** flagged rows.")
 
-    styled = filtered[display_cols].style.apply(highlight_row, axis=1)
-    st.dataframe(styled, use_container_width=True, height=520)
 
-# ── Tab 3: Download ───────────────────────────────────────────────────────────
-with tab_download:
-    out_cols = [id_col_d, "duplicate_group", "similarity_pct", "comparison_data"]
-    for c in context_cols_d:
-        if c in result_df.columns and c not in out_cols:
-            out_cols.append(c)
-    if discriminator_d and discriminator_d in result_df.columns and discriminator_d not in out_cols:
-        out_cols.append(discriminator_d)
+# ════════════════════════════════════════════════════════════════════════════
+# CROSS-FILE — run analysis
+# ════════════════════════════════════════════════════════════════════════════
+else:
 
-    output_df = result_df[[c for c in out_cols if c in result_df.columns]]
+    if not run_cf and "cf_results" not in st.session_state:
+        st.caption("Find matching items between two files from different source systems "
+                   "using TF-IDF similarity on the combined vocabulary of both files.")
+        with st.expander("How it works"):
+            st.markdown("""
+**Step 1 — Normalise**
+Selected comparison columns from each file are normalised and combined into one text per item
+(`M8 X 30` → `M8X30`, abbreviations expanded).
 
-    base_name = os.path.splitext(source_filename)[0]
-    download_name = f"{base_name}_duplicates.xlsx"
+**Step 2 — TF-IDF on combined corpus**
+All texts from both files are fed to TF-IDF together so term weights reflect rarity
+across *both* systems. A product code rare in both systems gets a high weight;
+a generic word common in both gets a low weight.
 
-    buf = io.BytesIO()
-    with pd.ExcelWriter(buf, engine="openpyxl") as writer:
-        original_df.to_excel(writer, sheet_name="Data", index=False)
-        output_df.to_excel(writer, sheet_name="Duplicates", index=False)
+**Step 3 — Cross-file similarity matrix**
+Cosine similarity is computed between every File 1 item and every File 2 item.
+Only cross-file pairs are checked — File 1 vs File 1 comparisons are skipped.
 
-    st.download_button(
-        label="⬇ Download results as Excel",
-        data=buf.getvalue(),
-        file_name=download_name,
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=True,
+**Step 4 — Filter by threshold**
+Pairs below the threshold are discarded. The output is a flat list of candidate pairs
+for human review, sorted by File 1 item ID and then similarity descending.
+""")
+        st.stop()
+
+    if run_cf:
+        file1.seek(0)
+        file2.seek(0)
+        with st.spinner("Loading files…"):
+            df1 = pd.read_excel(file1, sheet_name=sheet1, header=int(header1))
+            df2 = pd.read_excel(file2, sheet_name=sheet2, header=int(header2))
+
+        progress = st.progress(0, "Normalising text…")
+        series1 = cf.build_compare_series(df1, id_col1, compare1)
+        series2 = cf.build_compare_series(df2, id_col2, compare2)
+        progress.progress(30, f"Comparing {len(series1)} × {len(series2)} pairs…")
+
+        candidates = cf.find_cross_candidates(series1, series2, threshold=cf_threshold)
+        progress.progress(80, f"Found {len(candidates):,} candidate pairs — building results…")
+
+        result_df = cf.build_results(
+            candidates, df1, df2, series1, series2,
+            id_col1=id_col1, id_col2=id_col2,
+            context_cols1=context1, context_cols2=context2,
+        )
+        progress.progress(100, "Done!")
+        progress.empty()
+
+        if result_df.empty:
+            st.warning("No matches found. Try lowering the threshold.")
+            st.stop()
+
+        st.session_state.update(
+            cf_results=result_df,
+            cf_df1=df1, cf_df2=df2,
+            cf_filename1=file1.name, cf_filename2=file2.name,
+            cf_n1=len(df1), cf_n2=len(df2),
+        )
+
+    if "cf_results" not in st.session_state:
+        st.stop()
+
+    result_df  = st.session_state["cf_results"]
+    df1        = st.session_state["cf_df1"]
+    df2        = st.session_state["cf_df2"]
+    filename1  = st.session_state["cf_filename1"]
+    filename2  = st.session_state["cf_filename2"]
+    n1         = st.session_state["cf_n1"]
+    n2         = st.session_state["cf_n2"]
+    n_pairs    = len(result_df)
+
+    tab_summary, tab_pairs, tab_download = st.tabs(
+        ["📊 Summary", "🔁 Candidate Pairs", "⬇ Download"]
     )
-    st.caption(
-        f"The file contains **{n_groups}** duplicate groups with "
-        f"**{n_flagged}** flagged rows."
-    )
+
+    with tab_summary:
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("File 1 rows", f"{n1:,}")
+        c2.metric("File 2 rows", f"{n2:,}")
+        c3.metric("Candidate pairs", n_pairs)
+        c4.metric("% of smaller file", f"{n_pairs / min(n1, n2):.0%}")
+        st.divider()
+        st.plotly_chart(similarity_chart(result_df["similarity_pct"], "pairs"),
+                        use_container_width=True)
+        st.caption("🟢 90–100 % — high confidence  "
+                   "🟡 70–89 % — review needed  "
+                   "🟠 60–69 % — uncertain  "
+                   "🔴 50–59 % — low confidence, review carefully")
+
+    with tab_pairs:
+        min_sim = st.slider("Show pairs with similarity ≥", 60, 100, 70, 5,
+                            key="cf_filter")
+        filtered = result_df[result_df["similarity_pct"] >= min_sim]
+        st.caption(f"Showing **{len(filtered)}** pairs")
+        styled = filtered.style.apply(highlight_row, axis=1)
+        st.dataframe(styled, use_container_width=True, height=520)
+
+    with tab_download:
+        base1 = os.path.splitext(filename1)[0]
+        base2 = os.path.splitext(filename2)[0]
+        buf = io.BytesIO()
+        with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+            df1.to_excel(writer, sheet_name="File1", index=False)
+            df2.to_excel(writer, sheet_name="File2", index=False)
+            result_df.to_excel(writer, sheet_name="Duplicates", index=False)
+        st.download_button(
+            label="⬇ Download results as Excel",
+            data=buf.getvalue(),
+            file_name=f"{base1}_vs_{base2}_duplicates.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+        )
+        st.caption(f"The file contains **{n_pairs}** candidate pairs. "
+                   f"Sheets: File1 ({n1} rows), File2 ({n2} rows), Duplicates ({n_pairs} pairs).")

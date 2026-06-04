@@ -180,36 +180,50 @@ on your data:
 
 ### Option 1 — Streamlit web app (recommended)
 
-No installation needed. Open the app, upload an Excel file, and download the results:
+**Live app:** [https://ekaterina-25-portfolio-duplicate-detectionapp-gubecm.streamlit.app](https://ekaterina-25-portfolio-duplicate-detectionapp-gubecm.streamlit.app)
 
-**[https://ekaterina-25-portfolio-duplicate-detectionapp-gubecm.streamlit.app](https://ekaterina-25-portfolio-duplicate-detectionapp-gubecm.streamlit.app)**
+The app has two modes selectable at the top of the sidebar:
 
-The app lets you:
-- Select which columns to compare and which to use as a discriminator
-- Adjust similarity thresholds with sliders
+**Within-file** — find duplicate items inside one Excel file
+- Select comparison columns, discriminator column, and context columns
+- Adjust two similarity thresholds with sliders
 - Browse duplicate groups colour-coded by confidence level
-- Download a two-sheet Excel file: original data on sheet *Data*, results on sheet *Duplicates*
+- Download: two-sheet Excel (*Data* = original, *Duplicates* = results)
 
-Sample files in the `data/` folder can be used to try the app:
-- `spare_parts_system1.xlsx` — general spare parts (use `specification` as comparison column)
-- `spare_parts_screws.xlsx` — screws with standard codes (use `specification` + `Standard` as discriminator to see how DIN 931 and DIN 933 are kept separate)
+**Cross-file** — find matching items between two files from different source systems
+- Upload two files independently with their own column mappings
+- Select comparison columns and reference columns separately for each file
+- Results show pairs side by side: `s1_name | s2_name | s1_specification | s2_specification ...`
+- Download: three-sheet Excel (*File1*, *File2*, *Duplicates*)
+
+**Sample files** in the `data/` folder:
+- `spare_parts_system1.xlsx` — 204-row general spare parts catalog
+- `spare_parts_system2.xlsx` — 165-row catalog from a second system (try cross-file against system1)
+- `spare_parts_screws.xlsx` — 218-row screw catalog; use `Standard` as discriminator to keep DIN 931 and DIN 933 separate
+
+**Run locally:**
+```bash
+pip install streamlit pandas scikit-learn openpyxl plotly
+streamlit run duplicate_detection/app.py
+```
 
 ---
 
 ### Option 2 — Command line
 
-**Install dependencies:**
-```bash
-pip install pandas scikit-learn openpyxl streamlit plotly
-```
-
-**Find duplicates:**
+**Within-file:**
 ```bash
 python find_duplicates.py
 ```
-
 Edit the configuration block at the top of `find_duplicates.py` to point to your file.
 The `Duplicates` sheet is added to the source Excel file.
+
+**Cross-file:**
+```bash
+python find_duplicates_cross_file.py
+```
+Edit `FILE1`, `FILE2`, `COMPARE_COLS1`, `COMPARE_COLS2` at the top of the script.
+Output is saved to `data/cross_file_candidates.xlsx` with three sheets.
 
 ---
 

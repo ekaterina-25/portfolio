@@ -1,7 +1,26 @@
 # PIM/MDM Portfolio
 
-A collection of practical Python examples for Product Information Management (PIM)
-and Master Data Management (MDM) challenges, built using public and synthetic datasets.
+Practical Python tools for Product Information Management (PIM) 
+and Master Data Management (MDM) challenges — built by someone 
+who has worked with the data, not just the algorithms.
+
+## About
+
+I'm Ekaterina Ruotsalainen, a data and systems specialist with 
+background in ERP/PDM environments and industrial product data 
+management. These projects are based on real problems I have 
+encountered working with item master data in industrial contexts: 
+duplicate records that exact-match search misses, validation rules 
+that need to handle messy real-world input, and classification tasks 
+where the request is vague but the answer needs to be precise.
+
+The goal is not to demonstrate textbook implementations, but to show 
+how domain understanding shapes technical decisions — like knowing 
+that DIN 931 and DIN 933 are different products even when their 
+dimensions are identical.
+
+[LinkedIn](https://linkedin.com/in/eruotsalainen) · 
+[GitHub](https://github.com/ekaterina-25)
 
 ## Projects
 

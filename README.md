@@ -47,35 +47,4 @@ streamlit run duplicate_detection/app.py
 
 ---
 
-### [Item Data Validation](item_data_validation/)
-
-Automated validation of item master data against standardisation rules — based on
-real quality gates used in ERP data harmonisation projects.
-
-Each item is checked across four categories:
-
-- **Reference catalogue** — product group codes and basic names must match approved values
-- **Field content** — forbidden symbols (encoding issues, delimiter conflicts),
-  uppercase convention, no extra spaces
-- **Field length** — ERP import limits (descriptions max 40 characters, part numbers max 30)
-- **Cross-field consistency** — specification and basic name must appear verbatim
-  in all language description columns
-
-Results are shown in a colour-coded table (data cells and check columns both highlighted),
-with a per-check summary and a downloadable Excel report.
-
-**Try it:** Run with built-in demo data (250 synthetic items across 20 product categories
-and 88 reference codes), or upload your own files — item data and a reference catalogue.
-The demo data includes deliberate errors across all check types so every validation
-rule is demonstrated.
-
-**Run locally:**
-```
-streamlit run item_data_validation/app.py
-```
-
-**Tools:** Python, pandas, Streamlit, openpyxl
-
----
-
-*More sections coming: Copilot Studio agent examples.*
+*More sections coming: item data validation, Copilot Studio agent examples.*

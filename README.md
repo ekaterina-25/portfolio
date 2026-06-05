@@ -38,11 +38,6 @@ similarity and within-group verification.
 **Try it:** Run with built-in demo datasets (general spare parts or screws with discriminator),
 upload your own Excel files, or use the datasets in [`duplicate_detection/data/`](duplicate_detection/data/).
 
-**Run locally:**
-```
-streamlit run duplicate_detection/app.py
-```
-
 **Tools:** Python, scikit-learn, pandas, Streamlit, openpyxl, Plotly
 
 ---

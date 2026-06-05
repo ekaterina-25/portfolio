@@ -36,7 +36,7 @@ similarity and within-group verification.
 - Configurable thresholds and output columns for different datasets
 
 **Try it:** Run with built-in demo datasets (general spare parts or screws with discriminator),
-or upload your own Excel files.
+upload your own Excel files, or use the datasets in [`duplicate_detection/data/`](duplicate_detection/data/).
 
 **Run locally:**
 ```

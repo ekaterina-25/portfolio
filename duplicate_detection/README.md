@@ -6,7 +6,7 @@ using TF-IDF text similarity. Two modes are supported:
 - **Within-file** — finds duplicate items inside a single catalog file
 - **Cross-file** — finds matching items between two files from different source systems
 
-**Try it online:** [Open the Streamlit app](https://ekaterina-25-portfolio-duplicate-detectionapp-gubecm.streamlit.app) — upload your own Excel file, configure settings, and download results. No installation needed.
+**Try it online:** [Open the Streamlit app](https://ekaterina-25-portfolio-duplicate-detectionapp-gubecm.streamlit.app) — run instantly with built-in demo datasets, upload your own Excel file, or use the sample files in the [`data/`](data/) folder. No installation needed.
 
 ---
 

@@ -24,4 +24,5 @@ directly.
 ## Git push
 Never push to the remote repository unless the user explicitly says to push.
 A request to commit does not imply a request to push.
-When ready to push, state clearly what will be pushed and ask for confirmation.
+For larger or first-time pushes, state what will be pushed and confirm first.
+For small follow-up changes the user has already approved, push directly without asking again.

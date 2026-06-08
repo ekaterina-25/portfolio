@@ -42,4 +42,24 @@ upload your own Excel files, or use the datasets in [`duplicate_detection/data/`
 
 ---
 
-*More sections coming: item data validation, Copilot Studio agent examples.*
+### [Item Data Validation](item_data_validation/)
+
+Validating industrial item master data against standardisation rules, with an
+interactive correction workflow.
+
+- 8 checks: reference catalogue membership, forbidden symbols, uppercase convention,
+  field length (ERP import limits), and cross-field consistency
+- Errors grouped by fix effort: auto-fixable (uppercase/spaces), suggestion (closest
+  reference match), or manual (symbols, length, description consistency)
+- Editor validates proposed fixes before writing back — invalid values are rejected
+  with a specific reason
+- Download: four-sheet Excel with colour-coded results and corrected data
+
+**Try it:** Run with built-in demo data (250 synthetic items, 88-row reference catalogue)
+or upload your own Excel files.
+
+**Tools:** Python, pandas, Streamlit, openpyxl
+
+---
+
+*More sections coming: Copilot Studio agent examples.*

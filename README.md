@@ -55,8 +55,8 @@ interactive correction workflow.
   with a specific reason
 - Download: four-sheet Excel with colour-coded results and corrected data
 
-**Try it:** Run with built-in demo data (250 synthetic items, 88-row reference catalogue)
-or upload your own Excel files.
+**Try it:** [Open the Streamlit app](https://ekaterina-25-item-validation.streamlit.app) — run instantly with built-in demo data
+(250 synthetic items, 88-row reference catalogue) or upload your own Excel files.
 
 **Tools:** Python, pandas, Streamlit, openpyxl
 

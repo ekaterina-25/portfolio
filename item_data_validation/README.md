@@ -9,7 +9,7 @@ some can be corrected automatically, others need a human decision.
 
 ## How to Test
 
-**Try it online (recommended):** *(link coming once deployed)* — run instantly with
+**Try it online (recommended):** [Open the Streamlit app](https://ekaterina-25-item-validation.streamlit.app) — run instantly with
 built-in demo data, upload your own Excel files, or use the sample files in the
 [`data/`](data/) folder. No installation needed.
 

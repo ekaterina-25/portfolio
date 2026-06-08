@@ -35,7 +35,7 @@ similarity and within-group verification.
 - Two modes: within a single file, or across two files from different source systems
 - Configurable thresholds and output columns for different datasets
 
-**Try it:** Run with built-in demo datasets (general spare parts or screws with discriminator),
+**Try it:** [Open the Streamlit app](https://ekaterina-25-portfolio-duplicate-detectionapp-gubecm.streamlit.app) — run instantly with built-in demo datasets (general spare parts or screws with discriminator),
 upload your own Excel files, or use the datasets in [`duplicate_detection/data/`](duplicate_detection/data/).
 
 **Tools:** Python, scikit-learn, pandas, Streamlit, openpyxl, Plotly

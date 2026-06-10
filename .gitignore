@@ -4,6 +4,8 @@
 # Client data and internal source materials — never publish
 duplicate_detection/source_data_duplicates/
 item_data_validation/source_data/
+Copilot_agents/product_classifier/source_data/
+Copilot_agents/item_data_normalizer/source_data/
 
 # Old/intermediate script versions
 duplicate_detection/find_duplicates_single_file.py

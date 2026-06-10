@@ -62,10 +62,14 @@ interactive correction workflow.
 
 ---
 
-### [Product Classifier](Copilot_agents/product_classifier/)
+### [Copilot Studio Agents](Copilot_agents/)
 
-A Microsoft Copilot Studio agent that classifies vague item creation tickets into the
-correct internal product group, with harmonized description and specification as output.
+Two agents built in Microsoft Copilot Studio for industrial item data management tasks.
+
+#### [Product Classifier](Copilot_agents/product_classifier/)
+
+Classifying vague item creation tickets into the correct internal product group,
+with harmonized description and specification as output.
 
 - Web-first: runs Bing search before deciding — no guessing from token similarity alone
 - Identifies product type from manufacturer pages, datasheets, and distributors
@@ -75,12 +79,10 @@ correct internal product group, with harmonized description and specification as
 
 **Tools:** Microsoft Copilot Studio, Bing Search
 
----
+#### [Fastener Normalizer](Copilot_agents/item_data_normalizer/)
 
-### [Fastener Normalizer](Copilot_agents/item_data_normalizer/)
-
-A Microsoft Copilot Studio agent that harmonizes legacy fastener item data in Excel
-against internal naming rules, with harmonized output written back to Excel automatically.
+Harmonizing legacy fastener item data in Excel against internal naming rules,
+with harmonized output written back to Excel automatically.
 
 - Reads item rows from Excel using the Excel Online connector
 - Resolves mixed ISO/DIN standards: ISO preferred when both are present

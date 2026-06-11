@@ -165,7 +165,7 @@ instantly — no API call is made. For any other input, the simulation runs a li
 Tavily web search and classifies the result using Claude Haiku, returning the same
 JSON output format the real agent uses.
 
-**Try it:** *(link will be added after deployment)*
+**Try it:** [Open the Streamlit simulation](https://ekaterina-25-item-classifier.streamlit.app)
 
 ---
 

@@ -77,7 +77,7 @@ with harmonized description and specification as output.
 - Returns harmonized English/Finnish descriptions and specification in company format
 - Confidence score and evidence links included; raises a clarifying question if uncertain
 
-**Try it:** *(link will be added after deployment)* — five pre-built examples replay real agent
+**Try it:** [Open the Streamlit simulation](https://ekaterina-25-item-classifier.streamlit.app) — five pre-built examples replay real agent
 responses instantly, or enter any part number for a live web search classification.
 
 **Tools:** Microsoft Copilot Studio, Bing Search · Simulation: Streamlit, Tavily, Claude Haiku

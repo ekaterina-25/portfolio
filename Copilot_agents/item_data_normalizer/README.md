@@ -213,7 +213,7 @@ A Streamlit app demonstrates the harmonization workflow using the 15-row demo da
 Select rows from the input table, press **Normalize**, and a side-by-side before/after
 comparison shows what the agent changed in each row.
 
-**Try it:** *(link will be added after deployment)*
+**Try it:** [Open the Streamlit simulation](https://ekaterina-25-item-data-normalizer.streamlit.app)
 
 ---
 

@@ -94,7 +94,7 @@ with harmonized output written back to Excel automatically.
 - Writes harmonized output back to Excel via Power Automate and Office Scripts
 - Built for fasteners; naming rules can be extended to other product groups
 
-**Try it:** *(link will be added after deployment)* — select rows from the input table and
+**Try it:** [Open the Streamlit simulation](https://ekaterina-25-item-data-normalizer.streamlit.app) — select rows from the input table and
 see a side-by-side before/after comparison of the harmonization.
 
 **Tools:** Microsoft Copilot Studio, Power Automate, Office Scripts, Excel Online · Simulation: Streamlit

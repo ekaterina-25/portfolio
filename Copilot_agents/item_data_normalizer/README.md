@@ -207,6 +207,18 @@ The internal standard `INT-2019` replaces a real company-internal standard code.
 
 ---
 
+## Interactive Simulation
+
+A Streamlit app demonstrates the harmonization workflow using the 15-row demo dataset.
+Select rows from the input table, press **Normalize**, and a side-by-side before/after
+comparison shows what the agent changed in each row.
+
+**Try it:** *(link will be added after deployment)*
+
+---
+
 ## Tools
 
-Microsoft Copilot Studio · Power Automate · Office Scripts · Excel Online (Microsoft 365)
+**Agent:** Microsoft Copilot Studio · Power Automate · Office Scripts · Excel Online (Microsoft 365)
+
+**Simulation:** Streamlit · pandas · openpyxl

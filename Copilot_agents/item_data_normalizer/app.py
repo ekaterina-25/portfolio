@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 st.set_page_config(
     page_title="Fastener Normalizer",
@@ -30,6 +31,8 @@ def load_data() -> tuple[pd.DataFrame, pd.DataFrame]:
 
 if "normalized_indices" not in st.session_state:
     st.session_state.normalized_indices = []
+if "scroll_to_results" not in st.session_state:
+    st.session_state.scroll_to_results = False
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -46,8 +49,6 @@ st.markdown(
     "_This page is a simplified simulation of the agent, not the agent itself. "
     "The real agent runs inside Microsoft Copilot Studio connected to Excel Online._"
 )
-
-st.divider()
 
 with st.expander("How this works"):
     st.markdown(
@@ -85,17 +86,16 @@ comes from the pre-built demo file.
 """
     )
 
-st.divider()
-
 df_in, df_out = load_data()
 
-# Abbreviated column names for compact display in side-by-side tables
-_COL_LABELS = {
-    "Description (English)": "Desc (EN)",
-    "Description (Finnish)": "Desc (FI)",
-}
+# Column widths sized to fit all 6 input columns in a wide layout without horizontal scroll
 col_cfg = {
-    k: st.column_config.TextColumn(v) for k, v in _COL_LABELS.items()
+    "Item Code": st.column_config.TextColumn(width="small"),
+    "Name": st.column_config.TextColumn(width="medium"),
+    "Description (English)": st.column_config.TextColumn("Desc (EN)", width="medium"),
+    "Description (Finnish)": st.column_config.TextColumn("Desc (FI)", width="small"),
+    "Specification": st.column_config.TextColumn(width="small"),
+    "Standard": st.column_config.TextColumn(width="medium"),
 }
 
 # ── Input table with row selection ────────────────────────────────────────────
@@ -113,6 +113,7 @@ event = st.dataframe(
     hide_index=True,
     use_container_width=True,
     column_config=col_cfg,
+    height=580,
 )
 selected_indices = event.selection.rows
 
@@ -122,10 +123,20 @@ if st.button(
     disabled=not selected_indices,
 ):
     st.session_state.normalized_indices = list(selected_indices)
+    st.session_state.scroll_to_results = True
 
 # ── Results: two side-by-side tables ─────────────────────────────────────────
 
+st.markdown('<div id="results-anchor"></div>', unsafe_allow_html=True)
+
 if st.session_state.normalized_indices:
+    if st.session_state.scroll_to_results:
+        st.session_state.scroll_to_results = False
+        components.html(
+            "<script>window.parent.document.getElementById('results-anchor')"
+            ".scrollIntoView({behavior:'smooth'});</script>",
+            height=0,
+        )
     indices = st.session_state.normalized_indices
     sel_in = df_in.iloc[indices].reset_index(drop=True)
 

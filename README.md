@@ -77,7 +77,10 @@ with harmonized description and specification as output.
 - Returns harmonized English/Finnish descriptions and specification in company format
 - Confidence score and evidence links included; raises a clarifying question if uncertain
 
-**Tools:** Microsoft Copilot Studio, Bing Search
+**Try it:** *(link will be added after deployment)* — five pre-built examples replay real agent
+responses instantly, or enter any part number for a live web search classification.
+
+**Tools:** Microsoft Copilot Studio, Bing Search · Simulation: Streamlit, Tavily, Claude Haiku
 
 #### [Fastener Normalizer](Copilot_agents/item_data_normalizer/)
 

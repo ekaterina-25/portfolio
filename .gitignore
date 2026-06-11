@@ -15,6 +15,10 @@ duplicate_detection/data/duplicates_system1.xlsx
 duplicate_detection/data/duplicates_screws.xlsx
 duplicate_detection/data/~$*.xlsx
 
+# Streamlit local secrets — never commit API keys
+.streamlit/secrets.toml
+**/.streamlit/secrets.toml
+
 # Python cache
 __pycache__/
 *.pyc

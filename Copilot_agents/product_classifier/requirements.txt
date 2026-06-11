@@ -1,0 +1,5 @@
+streamlit>=1.35
+anthropic
+tavily-python
+pandas
+openpyxl

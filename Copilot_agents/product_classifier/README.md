@@ -157,6 +157,18 @@ item data is included.
 
 ---
 
+## Interactive Simulation
+
+A Streamlit app demonstrates the classification workflow using the same five tickets
+from `demo_data/example_tickets.md`. Pre-built examples replay real agent responses
+instantly — no API call is made. For any other input, the simulation runs a live
+Tavily web search and classifies the result using Claude Haiku, returning the same
+JSON output format the real agent uses.
+
+**Try it:** *(link will be added after deployment)*
+
+---
+
 ## Known Limitations
 
 - Classification quality depends on web search availability and result quality.
@@ -179,4 +191,6 @@ item data is included.
 
 ## Tools
 
-Microsoft Copilot Studio · Bing Search
+**Agent:** Microsoft Copilot Studio · Bing Search
+
+**Simulation:** Streamlit · Tavily · Claude Haiku (Anthropic)

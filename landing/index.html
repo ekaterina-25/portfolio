@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ekaterina Ruotsalainen — Product Data & AI Portfolio</title>
+  <meta name="description" content="Portfolio of practical tools for PIM/MDM data quality, duplicate detection, item validation and AI-assisted product data harmonisation." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      /* Dark purple base */
+      --bg:           #0d0d14;
+
+      /* Cards clearly differentiated from bg */
+      --card:         #18182a;
+      --card-signal:  #1e1e32;
+
+      /* Borders: purple-tinted, visible on dark bg */
+      --border:       rgba(139, 92, 246, 0.45);
+      --border-str:   rgba(139, 92, 246, 0.6);
+      --border-faint: rgba(255, 255, 255, 0.08);
+
+      /* Subtle glow shadow for cards */
+      --card-shadow:  0 2px 20px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(139, 92, 246, 0.08);
+
+      /* Text */
+      --text:         #ffffff;
+      --text-body:    rgba(255, 255, 255, 0.72);
+      --text-muted:   rgba(255, 255, 255, 0.44);
+
+      /* Accent */
+      --accent:       #8b5cf6;
+      --accent-hover: #7c3aed;
+      --accent-soft:  rgba(139, 92, 246, 0.15);
+      --accent-lit:   #c4b5fd;
+      --accent-glow:  rgba(139, 92, 246, 0.25);
+
+      --warm:         #f59e0b;
+      --radius-lg:    24px;
+      --radius-md:    16px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background:
+        radial-gradient(ellipse at 18% 0%,  rgba(139, 92, 246, 0.20) 0%, transparent 55%),
+        radial-gradient(ellipse at 82% 8%,  rgba(99,  102, 241, 0.12) 0%, transparent 45%),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      min-height: 100vh;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .wrap {
+      width: min(1100px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      min-height: 42px;
+      padding: 0.6rem 1.15rem;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      font-family: inherit;
+      transition: all 0.18s;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 4px 18px var(--accent-glow);
+    }
+
+    .btn-primary:hover { background: var(--accent-hover); }
+
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.07);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+    }
+
+    .btn-ghost:hover { background: rgba(255, 255, 255, 0.13); }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text-body);
+      border: 1px solid var(--border-str);
+    }
+
+    .btn-outline:hover { background: rgba(139, 92, 246, 0.1); }
+
+    /* ── Nav ── */
+    nav.topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      padding: 1.3rem 0;
+      border-bottom: 1px solid var(--border-faint);
+    }
+
+    .brand {
+      font-weight: 600;
+      font-size: 0.95rem;
+      letter-spacing: -0.01em;
+    }
+
+    .navlinks {
+      display: flex;
+      gap: 1.2rem;
+      align-items: center;
+      flex-wrap: wrap;
+      font-size: 0.87rem;
+      color: var(--text-muted);
+    }
+
+    .navlinks a:hover { color: var(--text); }
+
+    .nav-cta {
+      color: var(--text) !important;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      padding: 0.35rem 0.9rem;
+      border-radius: 999px;
+    }
+
+    .nav-cta:hover { background: rgba(255, 255, 255, 0.13) !important; }
+
+    /* ── Hero ── */
+    .hero {
+      padding: 5rem 0 4rem;
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 3.5rem;
+      align-items: start;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.38rem 0.85rem;
+      border-radius: 999px;
+      background: rgba(139, 92, 246, 0.15);
+      border: 1px solid rgba(139, 92, 246, 0.32);
+      color: var(--accent-lit);
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      margin-bottom: 1.3rem;
+    }
+
+    h1 {
+      font-size: clamp(2.4rem, 5.5vw, 4.6rem);
+      line-height: 1.06;
+      letter-spacing: -0.03em;
+      font-weight: 300;
+      margin-bottom: 1.3rem;
+    }
+
+    .lead {
+      font-size: 1.05rem;
+      color: var(--text-body);
+      max-width: 580px;
+      margin-bottom: 2rem;
+      line-height: 1.75;
+    }
+
+    .cta-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.75rem;
+    }
+
+    .hero-note {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      max-width: 500px;
+      line-height: 1.7;
+    }
+
+    /* Hero side panel */
+    .hero-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.4rem;
+      margin-top: 0.5rem;
+      box-shadow: var(--card-shadow);
+    }
+
+    .panel-title {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+
+    .signal-list { display: grid; gap: 0.75rem; }
+
+    .signal {
+      padding: 0.9rem 1rem;
+      background: var(--card-signal);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+    }
+
+    .signal strong {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 0.2rem;
+    }
+
+    .signal span {
+      font-size: 0.84rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+
+    /* ── Sections ── */
+    section { padding: 3.5rem 0; }
+
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    h2 {
+      font-size: clamp(1.65rem, 3vw, 2.4rem);
+      font-weight: 600;
+      letter-spacing: -0.035em;
+      line-height: 1.1;
+    }
+
+    .section-intro {
+      font-size: 0.93rem;
+      color: var(--text-muted);
+      max-width: 520px;
+      line-height: 1.7;
+    }
+
+    /* ── About cards ── */
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    .about-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 1.4rem;
+      box-shadow: var(--card-shadow);
+    }
+
+    .about-card p {
+      font-size: 0.93rem;
+      color: var(--text-body);
+      line-height: 1.8;
+    }
+
+    .about-card ul {
+      margin-left: 1.1rem;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .about-card li { margin-bottom: 0.35rem; }
+
+    /* ── Proof cards ── */
+    .proof-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    .proof-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 1.3rem;
+      box-shadow: var(--card-shadow);
+    }
+
+    .proof-card h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 0.45rem;
+    }
+
+    .proof-card p {
+      font-size: 0.87rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    /* ── Problems: no background, blends into page gradient ── */
+    .problems {
+      padding: 3.5rem 0;
+    }
+
+    .problem-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+      list-style: none;
+      margin-top: 1.5rem;
+    }
+
+    .problem-list li {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 0.9rem 1rem 0.9rem 2.4rem;
+      position: relative;
+      color: var(--text-body);
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    .problem-list li::before {
+      content: "";
+      width: 0.5rem;
+      height: 0.5rem;
+      background: var(--accent);
+      border-radius: 50%;
+      position: absolute;
+      left: 1rem;
+      top: 1.35rem;
+    }
+
+    /* ── Guide box ── */
+    .guide-box {
+      border: 1px solid var(--border-str);
+      border-radius: var(--radius-lg);
+      padding: 1.3rem 1.5rem;
+      display: grid;
+      grid-template-columns: 0.85fr 1.15fr;
+      gap: 1.25rem;
+      background: rgba(139, 92, 246, 0.08);
+      margin-bottom: 1.25rem;
+    }
+
+    .guide-box strong {
+      display: block;
+      font-size: 0.93rem;
+      font-weight: 600;
+      margin-bottom: 0.22rem;
+    }
+
+    .guide-box p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    /* ── Project cards ── */
+    .project-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+    }
+
+    .project-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 1.4rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.72rem;
+      box-shadow: var(--card-shadow);
+    }
+
+    .tag {
+      display: inline-flex;
+      width: fit-content;
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      background: rgba(139, 92, 246, 0.18);
+      color: var(--accent-lit);
+      border: 1px solid rgba(139, 92, 246, 0.35);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    .project-card h3 {
+      font-size: 1.08rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1.3;
+    }
+
+    .project-card .desc {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    .value-box {
+      background: rgba(139, 92, 246, 0.09);
+      border: 1px solid rgba(139, 92, 246, 0.25);
+      border-radius: 12px;
+      padding: 0.8rem 1rem;
+      font-size: 0.86rem;
+      color: var(--text-body);
+      line-height: 1.6;
+    }
+
+    .value-box b { color: var(--accent-lit); }
+
+    .card-tools {
+      font-size: 0.79rem;
+      color: var(--text-muted);
+    }
+
+    .card-tools b { font-weight: 600; }
+
+    .card-actions {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      margin-top: auto;
+      padding-top: 0.3rem;
+    }
+
+    .card-actions .btn {
+      min-height: 38px;
+      padding: 0.45rem 0.9rem;
+      font-size: 0.85rem;
+    }
+
+    .demo-note {
+      margin-top: 1rem;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border-faint);
+      padding: 2rem 0;
+      font-size: 0.86rem;
+      color: var(--text-muted);
+    }
+
+    footer .wrap {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    footer a:hover { color: var(--text); }
+
+    /* ── Responsive ── */
+    @media (max-width: 820px) {
+      .hero, .guide-box, .about-grid { grid-template-columns: 1fr; }
+      .proof-grid, .project-grid, .problem-list { grid-template-columns: 1fr; }
+      .section-head { flex-direction: column; align-items: start; }
+      .section-intro { margin-top: 0.5rem; }
+    }
+
+    @media (max-width: 560px) {
+      .wrap { width: calc(100% - 28px); }
+      .hero { padding: 3rem 0 2.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="wrap">
+    <nav class="topbar" aria-label="Main navigation">
+      <div class="brand">Ekaterina Ruotsalainen</div>
+      <div class="navlinks">
+        <a href="#projects">Projects</a>
+        <a href="#about">About</a>
+        <a href="https://github.com/ekaterina-25/portfolio" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://linkedin.com/in/eruotsalainen" target="_blank" rel="noopener" class="nav-cta">LinkedIn</a>
+      </div>
+    </nav>
+  </div>
+
+  <header class="wrap hero">
+    <div>
+      <div class="eyebrow">PIM · MDM · data quality · practical AI</div>
+      <h1>Turning messy product data into usable systems, rules and tools.</h1>
+      <p class="lead">
+        A portfolio of practical Python and AI-assisted tools for duplicate detection,
+        item validation and product data harmonisation in ERP/PDM environments.
+      </p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#projects">View projects →</a>
+        <a class="btn btn-ghost" href="https://github.com/ekaterina-25/portfolio" target="_blank" rel="noopener">Open GitHub</a>
+      </div>
+      <p class="hero-note">
+        Built from real types of industrial data quality problems and rebuilt with public
+        or synthetic demo data so the examples can be shared safely.
+      </p>
+    </div>
+
+    <aside class="hero-panel" aria-label="Portfolio focus areas">
+      <div class="panel-title">What this portfolio shows</div>
+      <div class="signal-list">
+        <div class="signal">
+          <strong>Domain-aware data work</strong>
+          <span>ERP/PDM product data, naming rules, item structures and legacy catalogue issues.</span>
+        </div>
+        <div class="signal">
+          <strong>Practical implementation</strong>
+          <span>Python, pandas, scikit-learn, Streamlit, Excel workflows and validation logic.</span>
+        </div>
+        <div class="signal">
+          <strong>AI with guardrails</strong>
+          <span>Copilot Studio agents, classification with confidence scoring and human review.</span>
+        </div>
+      </div>
+    </aside>
+  </header>
+
+  <main>
+
+    <section id="about" class="wrap">
+      <div class="section-head">
+        <h2>About me</h2>
+        <p class="section-intro">
+          Based in Lahti, Finland. Interested in roles where data quality, analytics,
+          automation and business process development come together.
+        </p>
+      </div>
+      <div class="about-grid">
+        <article class="about-card">
+          <p>
+            Product data and data quality professional with experience in industrial ERP/PDM
+            environments, master data harmonisation, Python-based automation and applied AI
+            workflows. My strength is combining domain understanding, data logic and practical
+            implementation.
+          </p>
+        </article>
+        <article class="about-card">
+          <ul>
+            <li>ERP/PDM product and master data</li>
+            <li>Data quality, validation and harmonisation</li>
+            <li>Python, pandas, scikit-learn and Streamlit</li>
+            <li>Copilot Studio, AI-assisted workflows and prompt design</li>
+            <li>Documentation, user guidance and stakeholder support</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="wrap">
+      <div class="section-head">
+        <h2>From data problems to working tools</h2>
+        <p class="section-intro">
+          Not generic ML demos — tools that focus on the incomplete, inconsistent and
+          historically accumulated data that blocks ERP migrations, reporting and automation.
+        </p>
+      </div>
+      <div class="proof-grid">
+        <article class="proof-card">
+          <h3>Understand the business context</h3>
+          <p>Start from how product data is created, used and broken in real processes — not just from the dataset.</p>
+        </article>
+        <article class="proof-card">
+          <h3>Translate rules into logic</h3>
+          <p>Turn naming principles, ERP constraints and domain exceptions into validation and harmonisation logic.</p>
+        </article>
+        <article class="proof-card">
+          <h3>Make it usable</h3>
+          <p>Package the result as simple browser demos, Excel-compatible workflows or AI-assisted process support.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="problems">
+      <div class="wrap">
+        <div class="section-head">
+          <h2>Problems I solve</h2>
+          <p class="section-intro">
+            The common thread is practical data quality: making fragmented product and
+            master data easier to trust, migrate, report and automate.
+          </p>
+        </div>
+        <ul class="problem-list">
+          <li>Duplicate and near-duplicate item records in spare part and product catalogues</li>
+          <li>Inconsistent naming, mixed standards, abbreviations and unclear legacy item descriptions</li>
+          <li>Manual Excel-based checking before ERP migration or data enrichment work</li>
+          <li>Data that is not ready for reporting, automation, search or AI-assisted workflows</li>
+          <li>Business rules that exist in people's heads but are not yet formalised as scalable logic</li>
+          <li>AI use cases where confidence, source checking and human review matter more than flashy output</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="projects" class="wrap">
+      <div class="section-head">
+        <h2>Projects</h2>
+        <p class="section-intro">
+          Start with the live demos for a quick non-technical view.
+          Open GitHub for implementation details.
+        </p>
+      </div>
+
+      <div class="guide-box">
+        <div>
+          <strong>Recommended starting point</strong>
+          <p>Try the Duplicate Detection demo first.</p>
+        </div>
+        <p>
+          It best demonstrates the portfolio's core idea: combining text similarity with domain
+          knowledge so that a tool finds useful matches without treating every similar-looking
+          item as the same product.
+        </p>
+      </div>
+
+      <div class="project-grid">
+
+        <article class="project-card">
+          <span class="tag">Python · ML</span>
+          <h3>Duplicate Detection in Spare Parts Catalogues</h3>
+          <p class="desc">
+            Finds possible duplicate items from messy spare part data using text similarity
+            and domain-aware comparison rules. Handles naming variation, abbreviations and
+            formatting differences while avoiding obvious false matches.
+          </p>
+          <div class="value-box">
+            <b>Business value:</b> reduces manual review effort and helps prevent duplicate
+            item creation before catalogue clean-up or ERP migration.
+          </div>
+          <div class="card-tools"><b>Tools:</b> Python, scikit-learn, pandas, Streamlit</div>
+          <div class="card-actions">
+            <a class="btn btn-primary" href="https://ekaterina-25-portfolio-duplicate-detectionapp-gubecm.streamlit.app" target="_blank" rel="noopener">Try demo *</a>
+            <a class="btn btn-outline" href="https://github.com/ekaterina-25/portfolio/tree/main/duplicate_detection" target="_blank" rel="noopener">View code</a>
+          </div>
+        </article>
+
+        <article class="project-card">
+          <span class="tag">Python · Validation</span>
+          <h3>Item Master Data Validation</h3>
+          <p class="desc">
+            Checks item master data against naming rules and ERP constraints before migration
+            or data entry. Flags field-length issues, forbidden characters, casing problems
+            and cross-field inconsistencies.
+          </p>
+          <div class="value-box">
+            <b>Business value:</b> catches quality issues early and makes correction work
+            more structured, traceable and repeatable.
+          </div>
+          <div class="card-tools"><b>Tools:</b> Python, pandas, Streamlit</div>
+          <div class="card-actions">
+            <a class="btn btn-primary" href="https://ekaterina-25-item-validation.streamlit.app" target="_blank" rel="noopener">Try demo *</a>
+            <a class="btn btn-outline" href="https://github.com/ekaterina-25/portfolio/tree/main/item_data_validation" target="_blank" rel="noopener">View code</a>
+          </div>
+        </article>
+
+        <article class="project-card">
+          <span class="tag">Copilot Studio · AI</span>
+          <h3>Product Classifier — Copilot Studio Agent</h3>
+          <p class="desc">
+            A Copilot Studio agent that classifies vague item creation requests into the
+            correct internal product group. Uses web search and confidence scoring instead
+            of guessing from the request text alone.
+          </p>
+          <div class="value-box">
+            <b>Business value:</b> supports more consistent item creation and reduces
+            classification uncertainty in early request handling.
+          </div>
+          <div class="card-tools"><b>Tools:</b> Microsoft Copilot Studio, Bing Search · Simulation: Streamlit, Claude AI</div>
+          <div class="card-actions">
+            <a class="btn btn-primary" href="https://ekaterina-25-item-classifier.streamlit.app" target="_blank" rel="noopener">Try demo *</a>
+            <a class="btn btn-outline" href="https://github.com/ekaterina-25/portfolio/tree/main/Copilot_agents/product_classifier" target="_blank" rel="noopener">View notes</a>
+          </div>
+        </article>
+
+        <article class="project-card">
+          <span class="tag">Copilot Studio · Workflow</span>
+          <h3>Fastener Normalizer — Copilot Studio Agent</h3>
+          <p class="desc">
+            A workflow for harmonising legacy fastener item data in Excel. Normalises
+            standards, size formats and descriptions, then writes corrected output back
+            through an automated Power Automate flow.
+          </p>
+          <div class="value-box">
+            <b>Business value:</b> speeds up repetitive standardisation work and shows how
+            AI can support controlled Excel-based data processes.
+          </div>
+          <div class="card-tools"><b>Tools:</b> Copilot Studio, Power Automate, Office Scripts · Simulation: Streamlit</div>
+          <div class="card-actions">
+            <a class="btn btn-primary" href="https://ekaterina-25-item-data-normalizer.streamlit.app" target="_blank" rel="noopener">Try demo *</a>
+            <a class="btn btn-outline" href="https://github.com/ekaterina-25/portfolio/tree/main/Copilot_agents/item_data_normalizer" target="_blank" rel="noopener">View notes</a>
+          </div>
+        </article>
+
+      </div>
+      <p class="demo-note">* Demo apps may take ~30 s to wake up on first load — click "Yes, get this app back up!" if prompted.</p>
+    </section>
+
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>© Ekaterina Ruotsalainen · Product Data &amp; AI Portfolio</span>
+      <span>
+        <a href="https://github.com/ekaterina-25/portfolio" target="_blank" rel="noopener">GitHub</a>
+        &nbsp;·&nbsp;
+        <a href="https://linkedin.com/in/eruotsalainen" target="_blank" rel="noopener">LinkedIn</a>
+      </span>
+    </div>
+  </footer>
+
+</body>
+</html>

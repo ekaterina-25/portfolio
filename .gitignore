@@ -1,6 +1,9 @@
 # Claude Code internal files
 .claude/
 
+# Personal CV files — not for publishing
+CV_versions/
+
 # Client data and internal source materials — never publish
 duplicate_detection/source_data_duplicates/
 item_data_validation/source_data/

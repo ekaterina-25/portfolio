@@ -1,5 +1,7 @@
 # PIM/MDM Portfolio
 
+**Portfolio site:** [ekaterina81portfolio.netlify.app](https://ekaterina81portfolio.netlify.app/)
+
 Practical Python tools for Product Information Management (PIM) 
 and Master Data Management (MDM) challenges — built by someone 
 who has worked with the data, not just the algorithms.
